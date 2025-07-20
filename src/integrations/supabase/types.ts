@@ -51,25 +51,34 @@ export type Database = {
         Row: {
           createdAt: string
           id: string
+          package_id: string
+          package_name: string | null
           packageName: string
           price: string
           status: string
+          template_name: string | null
           userId: string
         }
         Insert: {
           createdAt?: string
           id: string
+          package_id?: string
+          package_name?: string | null
           packageName: string
           price: string
           status?: string
+          template_name?: string | null
           userId: string
         }
         Update: {
           createdAt?: string
           id?: string
+          package_id?: string
+          package_name?: string | null
           packageName?: string
           price?: string
           status?: string
+          template_name?: string | null
           userId?: string
         }
         Relationships: [
@@ -87,8 +96,11 @@ export type Database = {
           accessTier: string
           createdAt: string
           email: string
+          has_paid: boolean | null
           id: string
+          is_verified: boolean | null
           name: string
+          package_access: string | null
           password: string
           phone: string
           status: string
@@ -97,8 +109,11 @@ export type Database = {
           accessTier: string
           createdAt?: string
           email: string
+          has_paid?: boolean | null
           id: string
+          is_verified?: boolean | null
           name: string
+          package_access?: string | null
           password: string
           phone: string
           status?: string
@@ -107,8 +122,11 @@ export type Database = {
           accessTier?: string
           createdAt?: string
           email?: string
+          has_paid?: boolean | null
           id?: string
+          is_verified?: boolean | null
           name?: string
+          package_access?: string | null
           password?: string
           phone?: string
           status?: string

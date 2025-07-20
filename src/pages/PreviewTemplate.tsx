@@ -1,11 +1,13 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
+import PackageModal from '@/components/PackageModal';
 
 const PreviewTemplate = () => {
   const { templateId } = useParams();
+  const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
   
   // Mapping template ID ke URL prototipe
   const getPrototypeUrl = (id: string) => {
@@ -49,7 +51,10 @@ const PreviewTemplate = () => {
                 <ExternalLink size={16} />
                 Buka di Tab Baru
               </Button>
-              <Button className="bg-orange-500 hover:bg-orange-600">
+              <Button 
+                className="bg-orange-500 hover:bg-orange-600"
+                onClick={() => setIsPackageModalOpen(true)}
+              >
                 Pesan Template Ini
               </Button>
             </div>
@@ -118,13 +123,22 @@ const PreviewTemplate = () => {
                 <ExternalLink size={16} className="mr-2" />
                 Lihat Full Screen
               </Button>
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white flex-1">
+              <Button 
+                className="bg-orange-500 hover:bg-orange-600 text-white flex-1"
+                onClick={() => setIsPackageModalOpen(true)}
+              >
                 Pesan Template Ini Sekarang
               </Button>
             </div>
           </div>
         </div>
       </main>
+
+      <PackageModal
+        isOpen={isPackageModalOpen}
+        onClose={() => setIsPackageModalOpen(false)}
+        templateName={templateName}
+      />
     </div>
   );
 };

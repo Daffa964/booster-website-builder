@@ -4,6 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { 
   BookOpen, 
   Users, 
@@ -15,7 +18,10 @@ import {
   Lock,
   LogOut,
   User,
-  Package
+  Package,
+  Video,
+  FileText,
+  Settings
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -26,18 +32,97 @@ interface UserSession {
   package_access: string;
 }
 
+interface Module {
+  id: string;
+  title: string;
+  description: string;
+  is_published: boolean;
+  chapters: Chapter[];
+}
+
+interface Chapter {
+  id: string;
+  title: string;
+  description: string;
+  is_published: boolean;
+  lessons: Lesson[];
+}
+
+interface Lesson {
+  id: string;
+  title: string;
+  description: string;
+  difficulty: 'basic' | 'medium' | 'large';
+  video_url?: string;
+  content?: string;
+  materials_url?: string;
+  duration_minutes?: number;
+  is_published: boolean;
+  required_package: string[];
+}
+
+interface UserProgress {
+  lesson_id: string;
+  completed: boolean;
+  watch_time_minutes: number;
+}
+
 const Dashboard = () => {
   const [user, setUser] = useState<UserSession | null>(null);
   const [activeTab, setActiveTab] = useState('learning');
+  const [modules, setModules] = useState<Module[]>([]);
+  const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const session = localStorage.getItem('user_session');
     if (session) {
       setUser(JSON.parse(session));
+      fetchLMSData();
     } else {
       window.location.href = '/auth';
     }
   }, []);
+
+  const fetchLMSData = async () => {
+    try {
+      // Fetch modules with chapters and lessons
+      const { data: modulesData, error: modulesError } = await supabase
+        .from('modules')
+        .select(`
+          *,
+          chapters (
+            *,
+            lessons (*)
+          )
+        `)
+        .eq('is_published', true)
+        .order('order_index');
+
+      if (modulesError) throw modulesError;
+
+      // Fetch user progress
+      const { data: progressData, error: progressError } = await supabase
+        .from('user_progress')
+        .select('*')
+        .eq('user_id', JSON.parse(localStorage.getItem('user_session') || '{}').id);
+
+      if (progressError) throw progressError;
+
+      setModules(modulesData || []);
+      setUserProgress(progressData || []);
+    } catch (error) {
+      console.error('Error fetching LMS data:', error);
+      toast({
+        title: "Error",
+        description: "Gagal memuat data pembelajaran",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('user_session');
@@ -48,74 +133,48 @@ const Dashboard = () => {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
-  const learningModules = [
-    {
-      id: 1,
-      title: 'Pengenalan Digital Marketing',
-      description: 'Dasar-dasar pemasaran digital untuk UMKM',
-      duration: '2 jam',
-      progress: 100,
-      status: 'completed',
-      lessons: [
-        { title: 'Apa itu Digital Marketing', completed: true },
-        { title: 'Pentingnya Online Presence', completed: true },
-        { title: 'Platform Digital Marketing', completed: true }
-      ]
-    },
-    {
-      id: 2,
-      title: 'Membuat Website yang Efektif',
-      description: 'Panduan lengkap membangun website bisnis',
-      duration: '3 jam',
-      progress: 60,
-      status: 'in-progress',
-      lessons: [
-        { title: 'Perencanaan Website', completed: true },
-        { title: 'Desain yang User-Friendly', completed: true },
-        { title: 'Optimasi untuk Mobile', completed: false },
-        { title: 'Testing dan Launch', completed: false }
-      ]
-    },
-    {
-      id: 3,
-      title: 'SEO untuk Pemula',
-      description: 'Teknik dasar untuk meningkatkan ranking Google',
-      duration: '2.5 jam',
-      progress: 0,
-      status: user.package_access === 'small' ? 'locked' : 'available',
-      lessons: [
-        { title: 'Keyword Research', completed: false },
-        { title: 'On-Page SEO', completed: false },
-        { title: 'Content Strategy', completed: false }
-      ]
-    },
-    {
-      id: 4,
-      title: 'Social Media Marketing',
-      description: 'Strategi pemasaran di media sosial',
-      duration: '2 jam',
-      progress: 0,
-      status: user.package_access === 'small' ? 'locked' : 'available',
-      lessons: [
-        { title: 'Platform Selection', completed: false },
-        { title: 'Content Calendar', completed: false },
-        { title: 'Engagement Strategy', completed: false }
-      ]
-    },
-    {
-      id: 5,
-      title: 'Advanced Analytics',
-      description: 'Menganalisis performa digital marketing',
-      duration: '3 jam',
-      progress: 0,
-      status: ['large', 'enterprise'].includes(user.package_access) ? 'available' : 'locked',
-      lessons: [
-        { title: 'Google Analytics Setup', completed: false },
-        { title: 'Data Interpretation', completed: false },
-        { title: 'ROI Calculation', completed: false }
-      ]
+  // Helper functions for displaying LMS data
+  const getLessonProgress = (lessonId: string) => {
+    return userProgress.find(p => p.lesson_id === lessonId);
+  };
+
+  const calculateChapterProgress = (chapter: Chapter) => {
+    const totalLessons = chapter.lessons.length;
+    if (totalLessons === 0) return 0;
+    
+    const completedLessons = chapter.lessons.filter(lesson => 
+      getLessonProgress(lesson.id)?.completed
+    ).length;
+    
+    return Math.round((completedLessons / totalLessons) * 100);
+  };
+
+  const getChapterStatus = (chapter: Chapter) => {
+    const progress = calculateChapterProgress(chapter);
+    
+    // Check if user has access based on package
+    const hasAccess = chapter.lessons.some(lesson => 
+      lesson.required_package.includes(user.package_access)
+    );
+    
+    if (!hasAccess) return 'locked';
+    if (progress === 100) return 'completed';
+    if (progress > 0) return 'in-progress';
+    return 'available';
+  };
+
+  const getTotalDuration = (chapter: Chapter) => {
+    const totalMinutes = chapter.lessons.reduce((sum, lesson) => 
+      sum + (lesson.duration_minutes || 0), 0
+    );
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    
+    if (hours > 0) {
+      return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
     }
-  ];
+    return `${minutes}m`;
+  };
 
   const getPackageBadgeColor = (pkg: string) => {
     switch (pkg) {
@@ -154,6 +213,14 @@ const Dashboard = () => {
                 <User size={16} />
                 <span>{user.name}</span>
               </div>
+              {user.email === 'admin@bibooster.com' && (
+                <Button variant="outline" asChild>
+                  <Link to="/admin/cms">
+                    <Settings size={16} className="mr-2" />
+                    CMS Admin
+                  </Link>
+                </Button>
+              )}
               <Button variant="outline" onClick={handleLogout}>
                 <LogOut size={16} className="mr-2" />
                 Logout
@@ -216,79 +283,177 @@ const Dashboard = () => {
               </Card>
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-6">
-              {learningModules.map((module) => (
-                <Card key={module.id} className={module.status === 'locked' ? 'opacity-60' : ''}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="flex items-center gap-2">
-                          {module.status === 'completed' && <CheckCircle className="text-green-500" size={20} />}
-                          {module.status === 'in-progress' && <Play className="text-blue-500" size={20} />}
-                          {module.status === 'locked' && <Lock className="text-gray-400" size={20} />}
-                          {module.status === 'available' && <BookOpen className="text-gray-600" size={20} />}
-                          {module.title}
-                        </CardTitle>
-                        <CardDescription>{module.description}</CardDescription>
-                      </div>
-                      <Badge variant={
-                        module.status === 'completed' ? 'default' : 
-                        module.status === 'in-progress' ? 'secondary' :
-                        module.status === 'locked' ? 'outline' : 'outline'
-                      }>
-                        {module.status === 'completed' ? 'Selesai' :
-                         module.status === 'in-progress' ? 'Berlangsung' :
-                         module.status === 'locked' ? 'Terkunci' : 'Tersedia'}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Clock size={16} />
-                        <span>{module.duration}</span>
-                      </div>
-                      
-                      {module.progress > 0 && (
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span>Progress</span>
-                            <span>{module.progress}%</span>
-                          </div>
-                          <Progress value={module.progress} />
-                        </div>
-                      )}
+            {loading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <div className="grid lg:grid-cols-2 gap-6">
+                {modules.flatMap(module => 
+                  module.chapters.map(chapter => {
+                    const progress = calculateChapterProgress(chapter);
+                    const status = getChapterStatus(chapter);
+                    const duration = getTotalDuration(chapter);
 
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm">Lessons:</h4>
-                        {module.lessons.map((lesson, index) => (
-                          <div key={index} className="flex items-center gap-2 text-sm">
-                            {lesson.completed ? 
-                              <CheckCircle size={16} className="text-green-500" /> :
-                              <div className="w-4 h-4 border border-gray-300 rounded-full" />
-                            }
-                            <span className={lesson.completed ? 'text-gray-900' : 'text-gray-600'}>
-                              {lesson.title}
-                            </span>
+                    return (
+                      <Card key={chapter.id} className={status === 'locked' ? 'opacity-60' : ''}>
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <CardTitle className="flex items-center gap-2">
+                                {status === 'completed' && <CheckCircle className="text-green-500" size={20} />}
+                                {status === 'in-progress' && <Play className="text-blue-500" size={20} />}
+                                {status === 'locked' && <Lock className="text-gray-400" size={20} />}
+                                {status === 'available' && <BookOpen className="text-gray-600" size={20} />}
+                                {chapter.title}
+                              </CardTitle>
+                              <CardDescription>{chapter.description}</CardDescription>
+                            </div>
+                            <Badge variant={
+                              status === 'completed' ? 'default' : 
+                              status === 'in-progress' ? 'secondary' :
+                              status === 'locked' ? 'outline' : 'outline'
+                            }>
+                              {status === 'completed' ? 'Selesai' :
+                               status === 'in-progress' ? 'Berlangsung' :
+                               status === 'locked' ? 'Terkunci' : 'Tersedia'}
+                            </Badge>
                           </div>
-                        ))}
-                      </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Clock size={16} />
+                              <span>{duration}</span>
+                            </div>
+                            
+                            {progress > 0 && (
+                              <div>
+                                <div className="flex justify-between text-sm mb-1">
+                                  <span>Progress</span>
+                                  <span>{progress}%</span>
+                                </div>
+                                <Progress value={progress} />
+                              </div>
+                            )}
 
-                      <Button 
-                        className="w-full mt-4" 
-                        variant={module.status === 'locked' ? 'outline' : 'default'}
-                        disabled={module.status === 'locked'}
-                      >
-                        {module.status === 'locked' ? 'Upgrade untuk Membuka' :
-                         module.status === 'completed' ? 'Review Materi' :
-                         module.status === 'in-progress' ? 'Lanjutkan Belajar' :
-                         'Mulai Belajar'}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                            <div className="space-y-2">
+                              <h4 className="font-medium text-sm">Materi:</h4>
+                              {chapter.lessons.slice(0, 3).map((lesson) => {
+                                const lessonProgress = getLessonProgress(lesson.id);
+                                return (
+                                  <div key={lesson.id} className="flex items-center gap-2 text-sm">
+                                    {lessonProgress?.completed ? 
+                                      <CheckCircle size={16} className="text-green-500" /> :
+                                      <div className="w-4 h-4 border border-gray-300 rounded-full" />
+                                    }
+                                    <span className={lessonProgress?.completed ? 'text-gray-900' : 'text-gray-600'}>
+                                      {lesson.title}
+                                    </span>
+                                    <div className="flex gap-1">
+                                      {lesson.video_url && <Video size={12} className="text-blue-500" />}
+                                      {lesson.materials_url && <FileText size={12} className="text-green-500" />}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                              {chapter.lessons.length > 3 && (
+                                <p className="text-xs text-muted-foreground">
+                                  +{chapter.lessons.length - 3} materi lainnya
+                                </p>
+                              )}
+                            </div>
+
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  className="w-full mt-4" 
+                                  variant={status === 'locked' ? 'outline' : 'default'}
+                                  disabled={status === 'locked'}
+                                >
+                                  {status === 'locked' ? 'Upgrade untuk Membuka' :
+                                   status === 'completed' ? 'Review Materi' :
+                                   status === 'in-progress' ? 'Lanjutkan Belajar' :
+                                   'Mulai Belajar'}
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                                <DialogHeader>
+                                  <DialogTitle>{chapter.title}</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  {chapter.lessons.map((lesson) => {
+                                    const lessonProgress = getLessonProgress(lesson.id);
+                                    const hasAccess = lesson.required_package.includes(user.package_access);
+                                    
+                                    return (
+                                      <Card key={lesson.id} className={!hasAccess ? 'opacity-60' : ''}>
+                                        <CardHeader className="pb-3">
+                                          <CardTitle className="text-lg flex items-center gap-2">
+                                            {lessonProgress?.completed ? 
+                                              <CheckCircle className="text-green-500" size={20} /> :
+                                              <div className="w-5 h-5 border border-gray-300 rounded-full" />
+                                            }
+                                            {lesson.title}
+                                            <Badge className={
+                                              lesson.difficulty === 'basic' ? 'bg-green-500' :
+                                              lesson.difficulty === 'medium' ? 'bg-yellow-500' : 'bg-red-500'
+                                            }>
+                                              {lesson.difficulty}
+                                            </Badge>
+                                            {!hasAccess && <Lock size={16} className="text-gray-400" />}
+                                          </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                          <p className="text-sm text-muted-foreground mb-4">{lesson.description}</p>
+                                          
+                                          {hasAccess && lesson.content && (
+                                            <div className="mb-4">
+                                              <h4 className="font-medium mb-2">Konten:</h4>
+                                              <div className="bg-muted p-4 rounded-lg">
+                                                <p className="text-sm whitespace-pre-wrap">{lesson.content}</p>
+                                              </div>
+                                            </div>
+                                          )}
+                                          
+                                          <div className="flex gap-2">
+                                            {hasAccess && lesson.video_url && (
+                                              <Button size="sm" variant="outline" asChild>
+                                                <a href={lesson.video_url} target="_blank" rel="noopener noreferrer">
+                                                  <Video size={16} className="mr-2" />
+                                                  Tonton Video
+                                                </a>
+                                              </Button>
+                                            )}
+                                            {hasAccess && lesson.materials_url && (
+                                              <Button size="sm" variant="outline" asChild>
+                                                <a href={lesson.materials_url} target="_blank" rel="noopener noreferrer">
+                                                  <FileText size={16} className="mr-2" />
+                                                  Download Materi
+                                                </a>
+                                              </Button>
+                                            )}
+                                            {!hasAccess && (
+                                              <p className="text-sm text-muted-foreground">
+                                                Upgrade paket untuk mengakses materi ini
+                                              </p>
+                                            )}
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    );
+                                  })}
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+                )}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="templates" className="space-y-6">

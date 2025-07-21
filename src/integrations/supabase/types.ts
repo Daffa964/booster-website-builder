@@ -47,6 +47,136 @@ export type Database = {
         }
         Relationships: []
       }
+      chapters: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_published: boolean
+          module_id: string
+          order_index: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          module_id: string
+          order_index?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          module_id?: string
+          order_index?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapters_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lessons: {
+        Row: {
+          chapter_id: string
+          content: string | null
+          created_at: string
+          description: string | null
+          difficulty: Database["public"]["Enums"]["lesson_difficulty"]
+          duration_minutes: number | null
+          id: string
+          is_published: boolean
+          materials_url: string | null
+          order_index: number
+          required_package: string[] | null
+          title: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          chapter_id: string
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          difficulty?: Database["public"]["Enums"]["lesson_difficulty"]
+          duration_minutes?: number | null
+          id?: string
+          is_published?: boolean
+          materials_url?: string | null
+          order_index?: number
+          required_package?: string[] | null
+          title: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          chapter_id?: string
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          difficulty?: Database["public"]["Enums"]["lesson_difficulty"]
+          duration_minutes?: number | null
+          id?: string
+          is_published?: boolean
+          materials_url?: string | null
+          order_index?: number
+          required_package?: string[] | null
+          title?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lessons_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      modules: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_published: boolean
+          order_index: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          order_index?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          order_index?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       Order: {
         Row: {
           createdAt: string
@@ -133,6 +263,47 @@ export type Database = {
         }
         Relationships: []
       }
+      user_progress: {
+        Row: {
+          completed: boolean
+          completion_date: string | null
+          created_at: string
+          id: string
+          lesson_id: string
+          updated_at: string
+          user_id: string
+          watch_time_minutes: number | null
+        }
+        Insert: {
+          completed?: boolean
+          completion_date?: string | null
+          created_at?: string
+          id?: string
+          lesson_id: string
+          updated_at?: string
+          user_id: string
+          watch_time_minutes?: number | null
+        }
+        Update: {
+          completed?: boolean
+          completion_date?: string | null
+          created_at?: string
+          id?: string
+          lesson_id?: string
+          updated_at?: string
+          user_id?: string
+          watch_time_minutes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -141,7 +312,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      lesson_difficulty: "basic" | "medium" | "large"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -268,6 +439,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      lesson_difficulty: ["basic", "medium", "large"],
+    },
   },
 } as const

@@ -187,6 +187,7 @@ export type Database = {
           price: string
           status: string
           template_name: string | null
+          template_path: string | null
           userId: string
         }
         Insert: {
@@ -198,6 +199,7 @@ export type Database = {
           price: string
           status?: string
           template_name?: string | null
+          template_path?: string | null
           userId: string
         }
         Update: {
@@ -209,6 +211,7 @@ export type Database = {
           price?: string
           status?: string
           template_name?: string | null
+          template_path?: string | null
           userId?: string
         }
         Relationships: [

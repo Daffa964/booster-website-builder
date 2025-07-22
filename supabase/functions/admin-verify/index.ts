@@ -65,6 +65,24 @@ serve(async (req) => {
       );
     }
 
+    if (action === 'get_verified_orders') {
+      const { data: orders, error } = await supabaseClient
+        .from('Order')
+        .select(`
+          *,
+          User (*)
+        `)
+        .in('status', ['paid', 'verified'])
+        .order('createdAt', { ascending: false });
+
+      if (error) throw error;
+
+      return new Response(
+        JSON.stringify({ orders }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ error: 'Invalid action' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }

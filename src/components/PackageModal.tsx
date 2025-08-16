@@ -137,10 +137,11 @@ const PackageModal: React.FC<PackageModalProps> = ({ isOpen, onClose, templateNa
       }
 
       // Create order record
+      const orderId = crypto.randomUUID();
       const { error: orderError } = await supabase
         .from('Order')
         .insert({
-          id: crypto.randomUUID(),
+          id: orderId,
           userId: userData.id,
           packageName: selectedPkg?.name || '',
           package_id: selectedPackage,
@@ -151,16 +152,15 @@ const PackageModal: React.FC<PackageModalProps> = ({ isOpen, onClose, templateNa
 
       if (orderError) throw orderError;
 
-      // Generate QRIS payment URL
-      const qrisUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=QRIS|${encodeURIComponent(selectedPkg?.name || '')}|${encodeURIComponent(selectedPkg?.price || '')}|${encodeURIComponent(formData.name)}|${encodeURIComponent(formData.phone)}`;
-      
       toast({
         title: "Pesanan Berhasil Dibuat!",
-        description: "Silakan lakukan pembayaran melalui QRIS yang akan terbuka.",
+        description: "Mengarahkan ke halaman pembayaran...",
       });
 
-      // Open QRIS payment in new tab
-      window.open(qrisUrl, '_blank');
+      // Redirect to QR payment page with order details
+      const paymentUrl = `/qr-payment?orderId=${encodeURIComponent(orderId)}&packageName=${encodeURIComponent(selectedPkg?.name || '')}&price=${encodeURIComponent(selectedPkg?.price || '')}&customerName=${encodeURIComponent(formData.name)}&customerPhone=${encodeURIComponent(formData.phone)}&templateName=${encodeURIComponent(templateName)}`;
+      
+      window.location.href = paymentUrl;
 
       onClose();
       setStep('packages');

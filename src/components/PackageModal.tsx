@@ -71,6 +71,7 @@ const PackageModal: React.FC<PackageModalProps> = ({ isOpen, onClose, templateNa
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    password: '',
     phone: '',
     notes: ''
   });
@@ -100,7 +101,7 @@ const PackageModal: React.FC<PackageModalProps> = ({ isOpen, onClose, templateNa
           phone: formData.phone,
           status: 'pending',
           accessTier: selectedPackage,
-          password: 'temp_password' // Will be set properly after verification
+          password: formData.password
         })
         .select()
         .single();
@@ -122,15 +123,21 @@ const PackageModal: React.FC<PackageModalProps> = ({ isOpen, onClose, templateNa
 
       if (orderError) throw orderError;
 
+      // Generate QRIS payment URL
+      const qrisUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=QRIS|${encodeURIComponent(selectedPkg?.name || '')}|${encodeURIComponent(selectedPkg?.price || '')}|${encodeURIComponent(formData.name)}|${encodeURIComponent(formData.phone)}`;
+      
       toast({
         title: "Pesanan Berhasil Dibuat!",
-        description: "Kami akan menghubungi Anda untuk verifikasi pembayaran dalam 1x24 jam.",
+        description: "Silakan lakukan pembayaran melalui QRIS yang akan terbuka.",
       });
+
+      // Open QRIS payment in new tab
+      window.open(qrisUrl, '_blank');
 
       onClose();
       setStep('packages');
       setSelectedPackage(null);
-      setFormData({ name: '', email: '', phone: '', notes: '' });
+      setFormData({ name: '', email: '', password: '', phone: '', notes: '' });
     } catch (error) {
       console.error('Error creating order:', error);
       toast({
@@ -241,17 +248,31 @@ const PackageModal: React.FC<PackageModalProps> = ({ isOpen, onClose, templateNa
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="phone">Nomor WhatsApp *</Label>
-              <Input
-                id="phone"
-                type="tel"
-                required
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="08123456789"
-              />
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="password">Password *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Masukkan password"
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone">Nomor WhatsApp *</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="08123456789"
+                />
+              </div>
             </div>
+
 
             <div>
               <Label htmlFor="notes">Catatan Tambahan (Opsional)</Label>
@@ -265,12 +286,12 @@ const PackageModal: React.FC<PackageModalProps> = ({ isOpen, onClose, templateNa
             </div>
 
             <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-blue-900 mb-2">Proses Selanjutnya:</h4>
+              <h4 className="font-semibold text-blue-900 mb-2">Proses Pembayaran:</h4>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Tim kami akan menghubungi Anda dalam 1x24 jam</li>
-                <li>• Verifikasi data dan konfirmasi pembayaran</li>
-                <li>• Setelah pembayaran, akun LMS akan diaktifkan</li>
-                <li>• Mulai akses materi pembelajaran dan template</li>
+                <li>• Klik "Pesan Sekarang" untuk membuat pesanan</li>
+                <li>• QRIS untuk pembayaran akan terbuka otomatis</li>
+                <li>• Scan QRIS dengan aplikasi banking/e-wallet</li>
+                <li>• Akun LMS akan diaktifkan setelah pembayaran diverifikasi</li>
               </ul>
             </div>
 
@@ -288,7 +309,7 @@ const PackageModal: React.FC<PackageModalProps> = ({ isOpen, onClose, templateNa
                 className="flex-1"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Memproses...' : 'Pesan Sekarang'}
+                {isSubmitting ? 'Memproses...' : 'Pesan & Bayar via QRIS'}
               </Button>
             </div>
           </form>

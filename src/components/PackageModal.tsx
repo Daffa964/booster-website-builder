@@ -91,22 +91,50 @@ const PackageModal: React.FC<PackageModalProps> = ({ isOpen, onClose, templateNa
     try {
       const selectedPkg = packages.find(pkg => pkg.id === selectedPackage);
       
-      // Create user record
-      const { data: userData, error: userError } = await supabase
+      // Check if user already exists
+      const { data: existingUser } = await supabase
         .from('User')
-        .insert({
-          id: crypto.randomUUID(),
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          status: 'pending',
-          accessTier: selectedPackage,
-          password: formData.password
-        })
-        .select()
+        .select('id')
+        .eq('email', formData.email)
         .single();
 
-      if (userError) throw userError;
+      let userData;
+      
+      if (existingUser) {
+        // Update existing user
+        const { data: updatedUser, error: updateError } = await supabase
+          .from('User')
+          .update({
+            name: formData.name,
+            phone: formData.phone,
+            accessTier: selectedPackage,
+            password: formData.password
+          })
+          .eq('id', existingUser.id)
+          .select()
+          .single();
+        
+        if (updateError) throw updateError;
+        userData = updatedUser;
+      } else {
+        // Create new user
+        const { data: newUser, error: userError } = await supabase
+          .from('User')
+          .insert({
+            id: crypto.randomUUID(),
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            status: 'pending',
+            accessTier: selectedPackage,
+            password: formData.password
+          })
+          .select()
+          .single();
+
+        if (userError) throw userError;
+        userData = newUser;
+      }
 
       // Create order record
       const { error: orderError } = await supabase

@@ -73,7 +73,8 @@ const PackageModal: React.FC<PackageModalProps> = ({ isOpen, onClose, templateNa
     email: '',
     password: '',
     phone: '',
-    notes: ''
+    notes: '',
+    domain: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -165,7 +166,7 @@ const PackageModal: React.FC<PackageModalProps> = ({ isOpen, onClose, templateNa
       onClose();
       setStep('packages');
       setSelectedPackage(null);
-      setFormData({ name: '', email: '', password: '', phone: '', notes: '' });
+      setFormData({ name: '', email: '', password: '', phone: '', notes: '', domain: '' });
     } catch (error) {
       console.error('Error creating order:', error);
       toast({
@@ -301,6 +302,22 @@ const PackageModal: React.FC<PackageModalProps> = ({ isOpen, onClose, templateNa
               </div>
             </div>
 
+
+            {(selectedPackage === 'medium' || selectedPackage === 'large' || selectedPackage === 'enterprise') && (
+              <div>
+                <Label htmlFor="domain">Request Domain Kustom (Opsional)</Label>
+                <Input
+                  id="domain"
+                  type="text"
+                  value={formData.domain || ''}
+                  onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
+                  placeholder="namabisnis.com (tanpa www)"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Untuk paket Medium ke atas, Anda dapat menggunakan domain sendiri
+                </p>
+              </div>
+            )}
 
             <div>
               <Label htmlFor="notes">Catatan Tambahan (Opsional)</Label>

@@ -8,10 +8,35 @@ import { Badge } from '@/components/ui/badge';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Filter } from 'lucide-react';
 
+// Import template thumbnails
+import templateLaundry from '@/assets/template-laundry.jpg';
+import templateFood from '@/assets/template-food.jpg';
+import templateCraft from '@/assets/template-craft.jpg';
+import templateFashion from '@/assets/template-fashion.jpg';
+import templateBeauty from '@/assets/template-beauty.jpg';
+import templateTech from '@/assets/template-tech.jpg';
+import templateService from '@/assets/template-service.jpg';
+import templateRetail from '@/assets/template-retail.jpg';
+
 const Templates = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const templatesPerPage = 12;
+
+  // Template thumbnails mapping
+  const getTemplateImage = (category: string) => {
+    switch (category) {
+      case 'Laundry': return templateLaundry;
+      case 'Makanan': return templateFood;
+      case 'Kerajinan': return templateCraft;
+      case 'Fashion': return templateFashion;
+      case 'Kecantikan': return templateBeauty;
+      case 'Teknologi': return templateTech;
+      case 'Jasa': return templateService;
+      case 'Retail': return templateRetail;
+      default: return templateTech;
+    }
+  };
 
   // Mock data untuk 80+ templates
   const allTemplates = Array.from({ length: 84 }, (_, i) => ({
@@ -19,7 +44,7 @@ const Templates = () => {
     name: `Template ${i + 1}`,
     category: ['Laundry', 'Makanan', 'Kerajinan', 'Fashion', 'Kecantikan', 'Teknologi', 'Jasa', 'Retail'][i % 8],
     description: `Template profesional untuk bisnis ${['laundry', 'kuliner', 'kerajinan', 'fashion', 'kecantikan', 'teknologi', 'jasa', 'retail'][i % 8]}`,
-    image: `https://images.unsplash.com/photo-${1580000000000 + i}?w=400&h=300&fit=crop`,
+    image: getTemplateImage(['Laundry', 'Makanan', 'Kerajinan', 'Fashion', 'Kecantikan', 'Teknologi', 'Jasa', 'Retail'][i % 8]),
     prototypeUrl: `https://prototipe-p2mw.barikliahmada.my.id/prototipe${i + 1}`,
     featured: i < 6
   }));

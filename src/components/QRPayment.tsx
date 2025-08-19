@@ -76,8 +76,8 @@ const QRPayment: React.FC<QRPaymentProps> = ({ orderData, onPaymentComplete }) =
   };
 
   const redirectToLMS = () => {
-    // Redirect to login page with a flag indicating they should access LMS
-    window.location.href = '/auth?redirect=dashboard';
+    // Redirect directly to LMS page
+    window.location.href = '/lms';
   };
 
   return (
